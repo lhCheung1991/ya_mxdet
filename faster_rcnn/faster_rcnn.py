@@ -10,7 +10,7 @@ def _set_dense_weights(lv: mx.gluon.nn.Dense, rv: mx.gluon.nn.Dense):
     lv.bias.set_data(rv.bias.data())
 
 
-class RCNNBlock(mx.gluon.Block):
+class RCNNBlock(mx.gluon.HybridBlock):
     def __init__(self, num_classes, **kwargs):
         super(RCNNBlock, self).__init__(**kwargs)
         self.fc6 = mx.gluon.nn.Dense(units=4096, activation='relu')
@@ -18,7 +18,7 @@ class RCNNBlock(mx.gluon.Block):
         self.cls_fc = mx.gluon.nn.Dense(in_units=4096, units=num_classes, activation=None)
         self.reg_fc = mx.gluon.nn.Dense(in_units=4096, units=num_classes*4, activation=None)
     
-    def forward(self, f, **kwargs):
+    def hybrid_forward(self, F, f, **kwargs):
         f = self.fc6(f)
         f = self.fc7(f)
         cls_output = self.cls_fc(f)
@@ -32,13 +32,17 @@ class RCNNBlock(mx.gluon.Block):
         # _set_dense_weights(self.fc7, vgg16.features[33])
 
 
-class FasterRCNN(mx.gluon.Block):
-    def __init__(self, num_anchors, num_classes, **kwargs):
+class FasterRCNN(mx.gluon.HybridBlock):
+    def __init__(self, num_anchors, num_classes, ctx=mx.cpu(), **kwargs):
         super(FasterRCNN, self).__init__()
-        self.rpn = RPNBlock(num_anchors, pretrained_model=kwargs["pretrained_model"], feature_name=kwargs["feature_name"])
+        self.rpn = RPNBlock(
+                num_anchors,
+                pretrained_model=kwargs["pretrained_model"],
+                feature_name=kwargs["feature_name"],
+                ctx=ctx)
         self.rcnn = RCNNBlock(num_classes)
         
-    def forward(self, x, **kwargs):
+    def hybrid_forward(self, F, x, **kwargs):
         raise NotImplementedError
     
     def init_params(self, ctx):

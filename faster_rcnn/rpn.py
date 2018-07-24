@@ -12,14 +12,14 @@ def setConvWeights(lv: mx.gluon.nn.Conv2D, rv: mx.gluon.nn.Conv2D):
     lv.weight.set_data(rv.weight.data())
     lv.bias.set_data(rv.bias.data())
 
-class DetectorHead(mx.gluon.Block):
+class DetectorHead(mx.gluon.HybridBlock):
     def __init__(self, num_anchors, **kwargs):
         super(DetectorHead, self).__init__(**kwargs)
         self.conv1 = mx.gluon.nn.Conv2D(channels=512, kernel_size=(3, 3), padding=(1,1), activation='relu', weight_initializer=mx.init.Normal(0.01))
         self.conv_cls = mx.gluon.nn.Conv2D(channels=2*num_anchors, kernel_size=(1, 1),padding=(0, 0), weight_initializer=mx.init.Normal(0.01))
         self.conv_reg = mx.gluon.nn.Conv2D(channels=4*num_anchors, kernel_size=(1, 1), padding=(0, 0), weight_initializer=mx.init.Normal(0.01))
     
-    def forward(self, feature, *args):
+    def hybrid_forward(self, F, feature, *args):
         f = self.conv1(feature)
         f_cls = self.conv_cls(f)
         f_reg = self.conv_reg(f)
@@ -29,7 +29,7 @@ class DetectorHead(mx.gluon.Block):
         self.collect_params().initialize(ctx=ctx)
 
 
-class RPNBlock(mx.gluon.Block):
+class RPNBlock(mx.gluon.HybridBlock):
     """ RPNBlock: region proposal network block
 
     Attributes:
@@ -40,19 +40,11 @@ class RPNBlock(mx.gluon.Block):
       feature_name: The name of feature in pretrained model. The name varies
                     for different models and different stages. 
     """
-    def __init__(self, num_anchors, pretrained_model="vgg16", feature_name='vgg0_conv12_fwd_output', **kwargs):
+    def __init__(self, num_anchors, pretrained_model="vgg16", feature_name='vgg0_conv12_fwd_output', ctx=mx.cpu(), **kwargs):
         super(RPNBlock, self).__init__(**kwargs)
-        self.feature_extractor = None
+        # self.feature_extractor = None
         self.feature_model = pretrained_model
         self.feature_name = feature_name
-        self.head = DetectorHead(num_anchors)
-    
-    def forward(self, data, *args):
-        f = self.feature_exactor(data)
-        f_cls, f_reg = self.head(f)
-        return f_cls, f_reg, f
-    
-    def init_params(self, ctx):
         # get feature exactor
         feature_model = models.get_model(self.feature_model, pretrained=True, ctx=ctx)
         input_var = mx.sym.var('data')
@@ -63,4 +55,13 @@ class RPNBlock(mx.gluon.Block):
         assert self.feature_name in feature_list
         feature_requested = internals[self.feature_name]
         self.feature_exactor = mx.gluon.SymbolBlock(feature_requested, input_var, params=feature_model.collect_params())
+
+        self.head = DetectorHead(num_anchors)
+    
+    def hybrid_forward(self, F, data, *args):
+        f = self.feature_exactor(data)
+        f_cls, f_reg = self.head(f)
+        return f_cls, f_reg, f
+    
+    def init_params(self, ctx):
         self.head.init_params(ctx)
