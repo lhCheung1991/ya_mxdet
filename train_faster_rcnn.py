@@ -58,7 +58,8 @@ def main():
             len(cfg.anchor_ratios) * len(cfg.anchor_scales),
             cfg.num_classes,
             pretrained_model=args.model,
-            feature_name=args.feature_name)
+            feature_name=args.feature_name,
+            ctx=ctx)
     net.init_params(ctx)
     if args.pretrained_model != "":
         net.collect_params().load(args.pretrained_model, ctx)
