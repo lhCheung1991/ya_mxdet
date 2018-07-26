@@ -25,25 +25,26 @@ def test_transformation(data, label):
 def benchmark(net, ctx, benchmark_save_path):
 
     global f_path
+
     test_dataset = TUPUFaceDataset(
-        # cfg.test_dataset_json_lst,
-        [f_path],
+        cfg.test_dataset_json_lst,
         transform=test_transformation,
         resize_func=img_resize,
-        shuffle=False)
+        shuffle=False
+    )
     
     test_datait = mx.gluon.data.DataLoader(test_dataset, batch_size=1, shuffle=False)
 
     ctx = ctx
-    # with open(cfg.test_dataset_json_lst[0], "r") as f:
-    with open(f_path, "r") as f:
-        test_data_lines = f.readlines()
+    with open(cfg.test_dataset_json_lst[0], "r") as f:
+    # with open(f_path, "r") as f:
+       test_data_lines = f.readlines()
     
     with open(benchmark_save_path, "w") as out_file:
     
         for it, (data, label) in enumerate(test_datait):
-            # if it >= 1000:
-            #     break
+            if it >= 1000:
+               break
             _str_lst = test_data_lines[it].split()
             file_path, _, _ = (_str_lst[0], _str_lst[1], _str_lst[2])
             data = data.as_in_context(ctx)
@@ -103,22 +104,25 @@ def benchmark(net, ctx, benchmark_save_path):
                 out_file.write(cur_rec)
 
 
-# if __name__ == "__main__":
-#     ctx = mx.cpu()
-#     net = FasterRCNN(
-#         len(cfg.anchor_ratios) * len(cfg.anchor_scales), 
-#         cfg.num_classes, 
-#         pretrained_model="vgg16",
-#         feature_name="vgg0_conv12_fwd_output",
-#         ctx=ctx)
-#     net.init_params(ctx)
-#     net.collect_params().load("/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/faster-rcnn-vgg16-9anchors/faster-rcnn-vgg16-9anchors-140000.gluonmodel", ctx)
-# 
-#     global f_path
-#     path_lst = os.listdir("/world/data-c40/wuhuimin/data/live_faces/detection_input")
-#     path_lst.sort()
-#     for f_name in path_lst: 
-#         f_path = os.path.join("/world/data-c40/wuhuimin/data/live_faces/detection_input", f_name)
-#         print("processing {}".format(f_path))
-#         f_path_out = os.path.join("/world/data-c40/wuhuimin/data/live_faces/detection_output", f_name.strip())
-#         benchmark(net, ctx, f_path_out)
+if __name__ == "__main__":
+    ctx = mx.gpu(7)
+    net = FasterRCNN(
+        len(cfg.anchor_ratios) * len(cfg.anchor_scales), 
+        cfg.num_classes, 
+        pretrained_model="vgg16",
+        feature_name="vgg0_conv12_fwd_output",
+        ctx=ctx)
+    net.init_params(ctx)
+    net.collect_params().load("/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/faster-rcnn-vgg16-9anchors/faster-rcnn-vgg16-9anchors-140000.gluonmodel", ctx)
+    
+    '''
+    global f_path
+    path_lst = os.listdir("/world/data-c40/wuhuimin/data/live_faces/detection_input")
+    path_lst.sort()
+    for f_name in path_lst: 
+        f_path = os.path.join("/world/data-c40/wuhuimin/data/live_faces/detection_input", f_name)
+        print("processing {}".format(f_path))
+        f_path_out = os.path.join("/world/data-c40/wuhuimin/data/live_faces/detection_output", f_name.strip())
+        benchmark(net, ctx, f_path_out)
+    '''
+    benchmark(net, ctx, "/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/faster-rcnn-vgg16-9anchors/faster-rcnn-vgg16-9anchors-140000.benchmark")

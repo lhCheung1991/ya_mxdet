@@ -18,7 +18,7 @@ def _bbox_overlaps(bbox, target):
                                      y0.reshape((-1, 1)), 
                                      x1.reshape((-1, 1)), 
                                      y1.reshape((-1, 1))], axis=1))
-    outer = _get_area(bbox) + _get_area(target.reshape(1, 4)) - inter
+    outer = _get_area(bbox) + _get_area(target.reshape(1, 4)) - inter + 0.00001
     iou = inter / outer
     return iou
 
