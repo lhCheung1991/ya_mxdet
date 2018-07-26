@@ -7,6 +7,10 @@ implementation **fully in MXNet [gluon](http://gluon.mxnet.io) API**. More funct
 *ya_mxdet* is not exactly the re-implementation of Faster R-CNN. You may need 
 to tune it carefully for your tasks.
 
+## News
+- 2018.07.26 Support multiple GPUs training.
+- 2017.09.26 Begin of the beginning.
+
 ## Dependency
 *ya_mxdet* depends on MXNet 0.12 with GPU support. 
 
