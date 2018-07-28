@@ -2,6 +2,5 @@
 __pycache__/
 .vscode
 model_dump/*
-TUPUFaceDataset/*
 VOC2007Train
 .ipynb_checkpoints/*

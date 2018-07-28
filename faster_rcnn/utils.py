@@ -132,6 +132,20 @@ def img_resize(img):
     return img, scale
 
 
+def img_resize_fix(img, target_h=270, target_w=480):
+    h, w, c = img.shape
+    target_ratio = float(target_w) / float(target_h) 
+    if (float(w) / float(h)) >= target_ratio:
+        pad_h, pad_w = int(w / target_ratio), w
+    else:
+        pad_h, pad_w = h, int(h * target_ratio)
+    pad_img = np.zeros((pad_h, pad_w, 3), dtype="uint8")
+    pad_img[0:h, 0:w, :] = img
+    img = cv2.resize(pad_img, (target_w, target_h))
+    scale = target_w / pad_w 
+    return img, scale
+
+
 def random_square_crop(img, label):
     c, h, w = img.shape
     if h>w:
