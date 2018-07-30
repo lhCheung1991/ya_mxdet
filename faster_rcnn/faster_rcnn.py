@@ -32,6 +32,27 @@ class RCNNBlock(mx.gluon.HybridBlock):
         # _set_dense_weights(self.fc7, vgg16.features[33])
 
 
+class LightHeadRCNNBlock(mx.gluon.HybridBlock):
+    '''
+    Li, Z., Peng, C., Yu, G., Zhang, X., Deng, Y., & Sun, J. (2017, November 20). Light-Head R-CNN: In Defense of Two-Stage Object Detector. Arxiv.org.
+    '''
+    def __init__(self, num_classes, **kwargs):
+        super(LightHeadRCNNBlock, self).__init__(**kwargs)
+        num_reg_classes = (2 if cfg.CLASS_AGNOSTIC else num_classes)
+        self.fc_new_1 = mx.gluon.nn.Dense(units=2048, activation="relu")
+        self.cls_score = mx.gluon.nn.Dense(in_units=2048, units=num_classes, activation=None) 
+        self.bbox_pred = mx.gluon.nn.Dense(in_units=2048, units=num_reg_classes*4, activation=None) 
+    
+    def hybrid_forward(self, F, f, **kwargs):
+        f = self.fc_new_1(f)
+        cls_output = self.cls_score(f)
+        reg_output = self.bbox_pred(f)
+        return cls_output, reg_output
+    
+    def init_by_vgg(self, ctx):
+        self.collect_params().initialize(mx.init.Normal(), ctx=ctx)
+
+
 class FasterRCNN(mx.gluon.HybridBlock):
     def __init__(self, num_anchors, num_classes, ctx=mx.cpu(), **kwargs):
         super(FasterRCNN, self).__init__()
@@ -40,7 +61,12 @@ class FasterRCNN(mx.gluon.HybridBlock):
                 pretrained_model=kwargs["pretrained_model"],
                 feature_name=kwargs["feature_name"],
                 ctx=ctx)
-        self.rcnn = RCNNBlock(num_classes)
+
+        # standard Faster R-CNN
+        # self.rcnn = RCNNBlock(num_classes)
+
+        # Light Head R-CNN
+        self.rcnn = LightHeadRCNNBlock(num_classes)
         
     def hybrid_forward(self, F, x, **kwargs):
         raise NotImplementedError

@@ -115,6 +115,7 @@ class _ConfigTUPUFace:
 
     n_max_gt_per_img = 30
 
+    CLASS_AGNOSTIC = True
 
 # Choose a config
 # config for voc 2012

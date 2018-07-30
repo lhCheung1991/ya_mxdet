@@ -29,6 +29,29 @@ class DetectorHead(mx.gluon.HybridBlock):
         self.collect_params().initialize(ctx=ctx)
 
 
+class LightHead(mx.gluon.HybridBlock):
+    '''
+    Li, Z., Peng, C., Yu, G., Zhang, X., Deng, Y., & Sun, J. (2017, November 20). Light-Head R-CNN: In Defense of Two-Stage Object Detector. Arxiv.org.
+    '''
+    def __init__(self, num_cmid, **kwargs):
+        super(LightHead, self).__init__(**kwargs)
+        self.conv_new_1 = mx.gluon.nn.Conv2D(channels=num_cmid, kernel_size=(15, 1), padding=(7, 0), activation="relu", weight_initializer=mx.init.Normal(0.01))
+        self.conv_new_2 = mx.gluon.nn.Conv2D(channels=10*7*7, kernel_size=(1, 15), padding=(0, 7), activation="relu", weight_initializer=mx.init.Normal(0.01))
+        self.conv_new_3 = mx.gluon.nn.Conv2D(channels=num_cmid, kernel_size=(1, 15), padding=(0, 7), activation="relu", weight_initializer=mx.init.Normal(0.01))
+        self.conv_new_4 = mx.gluon.nn.Conv2D(channels=10*7*7, kernel_size=(15, 1), padding=(7, 0), activation="relu", weight_initializer=mx.init.Normal(0.01))
+    
+    def hybrid_forward(self, F, feature, *args):
+        f1 = self.conv_new_1(feature)
+        f1 = self.conv_new_2(f1)
+        f2 = self.conv_new_3(feature)
+        f2 = self.conv_new_4(f2)
+        f = f1 + f2
+        return f
+
+    def init_params(self, ctx):
+        self.collect_params().initialize(ctx=ctx)
+
+
 class RPNBlock(mx.gluon.HybridBlock):
     """ RPNBlock: region proposal network block
 
@@ -57,11 +80,20 @@ class RPNBlock(mx.gluon.HybridBlock):
         self.feature_exactor = mx.gluon.SymbolBlock(feature_requested, input_var, params=feature_model.collect_params())
 
         self.head = DetectorHead(num_anchors)
+        self.light_head = LightHead(num_cmid=64)
     
     def hybrid_forward(self, F, data, *args):
+        # standard Faster R-CNN
+        # f = self.feature_exactor(data)
+        # f_cls, f_reg = self.head(f)
+        # return f_cls, f_reg, f
+
+        # Light Head R-CNN
         f = self.feature_exactor(data)
         f_cls, f_reg = self.head(f)
+        f = self.light_head(f)
         return f_cls, f_reg, f
     
     def init_params(self, ctx):
         self.head.init_params(ctx)
+        self.light_head.init_params(ctx)
