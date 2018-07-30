@@ -66,24 +66,24 @@ def bbox_overlaps(anchors:mx.nd.NDArray, gt:mx.nd.NDArray):
     The shape of anchors and gt should be (N, 4) and (M, 4)
     So the shape of return value is (N, M)
     """
-    ret = []
-    for i in range(gt.shape[0]):
-        cgt = gt[i].reshape((1, 4)).broadcast_to(anchors.shape)
-        # inter
-        x0 = nd.max(nd.stack(anchors[:,0], cgt[:,0]), axis=0)
-        y0 = nd.max(nd.stack(anchors[:,1], cgt[:,1]), axis=0)
-        x1 = nd.min(nd.stack(anchors[:,2], cgt[:,2]), axis=0)
-        y1 = nd.min(nd.stack(anchors[:,3], cgt[:,3]), axis=0)
-        
-        inter = _get_area(nd.concatenate([x0.reshape((-1, 1)), 
-                                         y0.reshape((-1, 1)), 
-                                         x1.reshape((-1, 1)), 
-                                         y1.reshape((-1, 1))], axis=1))
-        outer = _get_area(anchors) + _get_area(cgt) - inter
-        iou = inter / outer
-        ret.append(iou.reshape((-1, 1)))
-    ret=nd.concatenate(ret, axis=1)
-    return ret
+    N, M = anchors.shape[0], gt.shape[0]
+    anchors_mat = anchors.reshape((N, 1, 4)).broadcast_to((N, M, 4)).reshape((-1, 4))
+    gt_mat = gt.reshape((1, M, 4)).broadcast_to((N, M, 4)).reshape((-1, 4))
+    # inter
+    x0 = nd.max(nd.stack(anchors_mat[:,0], gt_mat[:,0]), axis=0)
+    y0 = nd.max(nd.stack(anchors_mat[:,1], gt_mat[:,1]), axis=0)
+    x1 = nd.min(nd.stack(anchors_mat[:,2], gt_mat[:,2]), axis=0)
+    y1 = nd.min(nd.stack(anchors_mat[:,3], gt_mat[:,3]), axis=0)
+
+    inter = _get_area(nd.concatenate([x0.reshape((-1, 1)), 
+                                     y0.reshape((-1, 1)), 
+                                     x1.reshape((-1, 1)), 
+                                     y1.reshape((-1, 1))], axis=1))
+    outer = _get_area(anchors_mat) + _get_area(gt_mat) - inter
+    iou = inter / outer
+    iou = iou.reshape((N, M))
+    return iou 
+
 
 def bbox_clip(bbox:mx.nd.NDArray, height, width):
     zeros_t = mx.nd.zeros(bbox[:, 0].shape, ctx=bbox.context)
