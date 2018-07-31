@@ -1,11 +1,15 @@
 #!/usr/bin/python3
 # Copyright 2017, Mengxiao Lin <linmx0130@gmail.com>
 
+import os;import sys;
+sys.path.append(os.path.expanduser('~/ya_mxdet/libs'))
+sys.path.append(os.path.expanduser('~/ya_mxdet/libs/nms'))
 import mxnet as mx
 import numpy as np
 from .anchor_generator import generate_anchors, map_anchors
 from .utils import bbox_inverse_transform, bbox_overlaps, bbox_transform, bbox_clip
 from .nms import nms
+from  nms.nms import gpu_nms_wrapper
 from .config import cfg
 
 
@@ -35,8 +39,14 @@ def proposal_train(rpn_cls, rpn_reg, gt, feature_shape, image_shape, ctx):
     # Use NMS to filter out too many boxes
     rpn_bbox_pred = rpn_bbox_pred.asnumpy().reshape((-1, 4))
     rpn_anchor_scores = rpn_anchor_scores.asnumpy().reshape((-1, ))
-    rpn_anchor_scores, rpn_bbox_pred = nms(rpn_anchor_scores, rpn_bbox_pred, cfg.rpn_nms_thresh, use_top_n=cfg.bbox_count_before_nms)
-    rpn_bbox_pred = mx.nd.array(rpn_bbox_pred, ctx)
+    rpn_bbox_proposal = np.hstack((rpn_bbox_pred, rpn_anchor_scores.reshape((rpn_anchor_scores.shape[0], 1))))
+    # rpn_anchor_scores, rpn_bbox_pred = nms(rpn_anchor_scores, rpn_bbox_pred, cfg.rpn_nms_thresh, use_top_n=cfg.bbox_count_before_nms)
+    gpu_nms = gpu_nms_wrapper(cfg.rpn_nms_thresh, ctx.device_id)
+    keep = gpu_nms(rpn_bbox_proposal)
+    rpn_bbox_proposal = rpn_bbox_proposal[keep][:, :4]
+
+    # rpn_bbox_pred = mx.nd.array(rpn_bbox_pred, ctx)
+    rpn_bbox_pred = mx.nd.array(rpn_bbox_proposal, ctx)
     del rpn_anchor_scores
 
     # append ground truth
@@ -106,8 +116,13 @@ def proposal_test(rpn_cls, rpn_reg, feature_shape, image_shape, ctx):
     # Use NMS to filter out too many boxes
     rpn_bbox_pred = rpn_bbox_pred.asnumpy().reshape((-1, 4))
     rpn_anchor_scores = rpn_anchor_scores.asnumpy().reshape((-1, ))
-    rpn_anchor_scores, rpn_bbox_pred = nms(rpn_anchor_scores, rpn_bbox_pred, cfg.rpn_nms_thresh, use_top_n=cfg.bbox_count_before_nms)
-    rpn_bbox_pred = mx.nd.array(rpn_bbox_pred, ctx)
+    rpn_bbox_proposal = np.hstack((rpn_bbox_pred, rpn_anchor_scores.reshape((rpn_anchor_scores.shape[0], 1))))
+    # rpn_anchor_scores, rpn_bbox_pred = nms(rpn_anchor_scores, rpn_bbox_pred, cfg.rpn_nms_thresh, use_top_n=cfg.bbox_count_before_nms)
+    gpu_nms = gpu_nms_wrapper(cfg.rpn_nms_thresh, ctx.device_id)
+    keep = gpu_nms(rpn_bbox_proposal)
+    rpn_bbox_proposal = rpn_bbox_proposal[keep][:, :4]
+    # rpn_bbox_pred = mx.nd.array(rpn_bbox_pred, ctx)
+    rpn_bbox_pred = mx.nd.array(rpn_bbox_proposal, ctx)
     del rpn_anchor_scores
 
     # Keep first cfg.rcnn_test_sample_size boxes

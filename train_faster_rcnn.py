@@ -66,9 +66,10 @@ def main():
     global args, logger
     train_ds = train_dataset()
 
-    CTX = [mx.gpu(i) for i in range(len(args.gpus.split(",")))]
+    CTX = [mx.gpu(int(i)) for i in args.gpus.split(",")]
     n_gpus = len(CTX)
     assert args.batch_size == n_gpus
+    logger.info(CTX)
     logger.info("batch_size = {}, 1 images per GPU".format(n_gpus))
 
     train_datait = mx.gluon.data.DataLoader(
@@ -205,5 +206,4 @@ if __name__ == "__main__":
     logger = logging_system()
     logger.info(vars(args))
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
     main()
