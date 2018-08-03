@@ -6,7 +6,7 @@ from faster_rcnn.config import cfg
 from TUPUFaceDataset import TUPUFaceDataset
 from faster_rcnn.faster_rcnn import FasterRCNN
 import mxnet as mx
-from faster_rcnn.utils import imagenetNormalize, img_resize, bbox_inverse_transform, bbox_clip
+from faster_rcnn.utils import imagenetNormalize, img_resize_fix, bbox_inverse_transform, bbox_clip
 from faster_rcnn.rpn_proposal import proposal_test
 from faster_rcnn.nms import nms
 
@@ -29,7 +29,7 @@ def benchmark(net, ctx, benchmark_save_path):
     test_dataset = TUPUFaceDataset(
         cfg.test_dataset_json_lst,
         transform=test_transformation,
-        resize_func=img_resize,
+        resize_func=img_resize_fix,
         shuffle=False
     )
     
@@ -43,8 +43,8 @@ def benchmark(net, ctx, benchmark_save_path):
     with open(benchmark_save_path, "w") as out_file:
     
         for it, (data, label) in enumerate(test_datait):
-            if it >= 1000:
-               break
+            # if it >= 1000:
+            #    break
             _str_lst = test_data_lines[it].split()
             file_path, _, _ = (_str_lst[0], _str_lst[1], _str_lst[2])
             data = data.as_in_context(ctx)
@@ -105,7 +105,7 @@ def benchmark(net, ctx, benchmark_save_path):
 
 
 if __name__ == "__main__":
-    ctx = mx.gpu(7)
+    ctx = mx.gpu(9)
     net = FasterRCNN(
         len(cfg.anchor_ratios) * len(cfg.anchor_scales), 
         cfg.num_classes, 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         feature_name="vgg0_conv12_fwd_output",
         ctx=ctx)
     net.init_params(ctx)
-    net.collect_params().load("/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/faster-rcnn-vgg16-9anchors/faster-rcnn-vgg16-9anchors-140000.gluonmodel", ctx)
+    net.collect_params().load("/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/light-head-rcnn-vgg16-9anchors/light-head-rcnn-vgg16-9anchors-80000.gluonmodel", ctx)
     
     '''
     global f_path
@@ -125,4 +125,4 @@ if __name__ == "__main__":
         f_path_out = os.path.join("/world/data-c40/wuhuimin/data/live_faces/detection_output", f_name.strip())
         benchmark(net, ctx, f_path_out)
     '''
-    benchmark(net, ctx, "/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/faster-rcnn-vgg16-9anchors/faster-rcnn-vgg16-9anchors-140000.benchmark")
+    benchmark(net, ctx, "/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/light-head-rcnn-vgg16-9anchors/light-head-rcnn-vgg16-9anchors-80000.benchmark")

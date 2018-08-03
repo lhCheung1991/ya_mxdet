@@ -41,7 +41,7 @@ def proposal_train(rpn_cls, rpn_reg, gt, feature_shape, image_shape, ctx):
     rpn_anchor_scores = rpn_anchor_scores.asnumpy().reshape((-1, ))
     rpn_bbox_proposal = np.hstack((rpn_bbox_pred, rpn_anchor_scores.reshape((rpn_anchor_scores.shape[0], 1))))
     # rpn_anchor_scores, rpn_bbox_pred = nms(rpn_anchor_scores, rpn_bbox_pred, cfg.rpn_nms_thresh, use_top_n=cfg.bbox_count_before_nms)
-    gpu_nms = gpu_nms_wrapper(cfg.rpn_nms_thresh, ctx.device_id)
+    gpu_nms = gpu_nms_wrapper(cfg.rpn_nms_thresh, ctx.device_id, use_top_n=cfg.bbox_count_before_nms)
     keep = gpu_nms(rpn_bbox_proposal)
     rpn_bbox_proposal = rpn_bbox_proposal[keep][:, :4]
 
@@ -118,7 +118,7 @@ def proposal_test(rpn_cls, rpn_reg, feature_shape, image_shape, ctx):
     rpn_anchor_scores = rpn_anchor_scores.asnumpy().reshape((-1, ))
     rpn_bbox_proposal = np.hstack((rpn_bbox_pred, rpn_anchor_scores.reshape((rpn_anchor_scores.shape[0], 1))))
     # rpn_anchor_scores, rpn_bbox_pred = nms(rpn_anchor_scores, rpn_bbox_pred, cfg.rpn_nms_thresh, use_top_n=cfg.bbox_count_before_nms)
-    gpu_nms = gpu_nms_wrapper(cfg.rpn_nms_thresh, ctx.device_id)
+    gpu_nms = gpu_nms_wrapper(cfg.rpn_nms_thresh, ctx.device_id, use_top_n=cfg.bbox_count_before_nms)
     keep = gpu_nms(rpn_bbox_proposal)
     rpn_bbox_proposal = rpn_bbox_proposal[keep][:, :4]
     # rpn_bbox_pred = mx.nd.array(rpn_bbox_pred, ctx)

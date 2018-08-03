@@ -22,9 +22,9 @@ def cpu_nms_wrapper(thresh):
     return _nms
 
 
-def gpu_nms_wrapper(thresh, device_id):
+def gpu_nms_wrapper(thresh, device_id, use_top_n=-1):
     def _nms(dets):
-        return gpu_nms(dets, thresh, device_id)
+        return gpu_nms(dets, thresh, device_id, use_top_n)
     return _nms
 
 

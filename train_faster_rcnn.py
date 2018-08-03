@@ -91,7 +91,7 @@ def main():
         net.collect_params().load(args.pretrained_model, CTX)
         logger.info("loading {}".format(args.pretrained_model))
 
-    lr_schdl = mx.lr_scheduler.FactorScheduler(step=150000, factor=0.9)
+    lr_schdl = mx.lr_scheduler.FactorScheduler(step=50000, factor=0.5)
     trainer = mx.gluon.trainer.Trainer(net.collect_params(), 'sgd',
                                         optimizer_params={
                                             'learning_rate': args.learning_rate,

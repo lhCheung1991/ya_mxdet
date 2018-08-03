@@ -3,8 +3,7 @@
     --gpus="4,5,6,7" \
     --batch_size 4 \
     --learning_rate 0.001 \
-    --save_path="/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/faster-rcnn-mobilenetv2_0.5-9anchors" \
+    --save_path="/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/light-head-rcnn-mobilenetv2_0.5-9anchors" \
     --save_interval 10000 \
     --model="mobilenetv2_0.5" \
     --feature_name="mobilenetv20_features_linearbottleneck12_batchnorm2_fwd_output" \
-    --pretrained_model="/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/faster-rcnn-mobilenetv2_0.5-9anchors/faster-rcnn-mobilenetv2_0.5-9anchors-24000.gluonmodel"
