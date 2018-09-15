@@ -80,20 +80,20 @@ class RPNBlock(mx.gluon.HybridBlock):
         self.feature_exactor = mx.gluon.SymbolBlock(feature_requested, input_var, params=feature_model.collect_params())
 
         self.head = DetectorHead(num_anchors)
-        self.light_head = LightHead(num_cmid=64)
+        # self.light_head = LightHead(num_cmid=64)
     
     def hybrid_forward(self, F, data, *args):
         # standard Faster R-CNN
-        # f = self.feature_exactor(data)
-        # f_cls, f_reg = self.head(f)
-        # return f_cls, f_reg, f
-
-        # Light Head R-CNN
         f = self.feature_exactor(data)
         f_cls, f_reg = self.head(f)
-        f = self.light_head(f)
         return f_cls, f_reg, f
+
+        # Light Head R-CNN
+        # f = self.feature_exactor(data)
+        # f_cls, f_reg = self.head(f)
+        # f = self.light_head(f)
+        # return f_cls, f_reg, f
     
     def init_params(self, ctx):
         self.head.init_params(ctx)
-        self.light_head.init_params(ctx)
+        # self.light_head.init_params(ctx)

@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-# Copyright 2017, Mengxiao Lin <linmx0130@gmail.com>
+# Copyright 2018, Linghan Zhang<lhcheung1991@gmail.com>
 import os
 import argparse
 from faster_rcnn.config import cfg
 from TUPUFaceDataset import TUPUFaceDataset
 from faster_rcnn.faster_rcnn import FasterRCNN
 import mxnet as mx
-from faster_rcnn.utils import imagenetNormalize, img_resize_fix, bbox_inverse_transform, bbox_clip
+from faster_rcnn.utils import imagenetNormalize, img_resize, bbox_inverse_transform, bbox_clip
 from faster_rcnn.rpn_proposal import proposal_test
 from faster_rcnn.nms import nms
 
@@ -27,24 +27,25 @@ def benchmark(net, ctx, benchmark_save_path):
     global f_path
 
     test_dataset = TUPUFaceDataset(
-        cfg.test_dataset_json_lst,
+        # cfg.test_dataset_json_lst,
+        [f_path],
         transform=test_transformation,
-        resize_func=img_resize_fix,
+        resize_func=img_resize,
         shuffle=False
     )
     
     test_datait = mx.gluon.data.DataLoader(test_dataset, batch_size=1, shuffle=False)
 
     ctx = ctx
-    with open(cfg.test_dataset_json_lst[0], "r") as f:
-    # with open(f_path, "r") as f:
+    # with open(cfg.test_dataset_json_lst[0], "r") as f:
+    with open(f_path, "r") as f:
        test_data_lines = f.readlines()
     
     with open(benchmark_save_path, "w") as out_file:
     
         for it, (data, label) in enumerate(test_datait):
             # if it >= 1000:
-            #    break
+            #   break
             _str_lst = test_data_lines[it].split()
             file_path, _, _ = (_str_lst[0], _str_lst[1], _str_lst[2])
             data = data.as_in_context(ctx)
@@ -111,18 +112,20 @@ if __name__ == "__main__":
         cfg.num_classes, 
         pretrained_model="vgg16",
         feature_name="vgg0_conv12_fwd_output",
+        # pretrained_model="mobilenetv2_0.25", 
+        # feature_name="mobilenetv20_features_linearbottleneck12_batchnorm2_fwd_output",
         ctx=ctx)
     net.init_params(ctx)
-    net.collect_params().load("/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/light-head-rcnn-vgg16-9anchors/light-head-rcnn-vgg16-9anchors-80000.gluonmodel", ctx)
+    net.collect_params().load("/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/faster-rcnn-vgg16-9anchors/faster-rcnn-vgg16-9anchors-280000.gluonmodel", ctx)
     
-    '''
+
     global f_path
-    path_lst = os.listdir("/world/data-c40/wuhuimin/data/live_faces/detection_input")
+    path_lst = os.listdir("/world/data-c27/face_landmarks_hourglass/detection-input")
     path_lst.sort()
     for f_name in path_lst: 
-        f_path = os.path.join("/world/data-c40/wuhuimin/data/live_faces/detection_input", f_name)
+        f_path = os.path.join("/world/data-c27/face_landmarks_hourglass/detection-input", f_name)
         print("processing {}".format(f_path))
-        f_path_out = os.path.join("/world/data-c40/wuhuimin/data/live_faces/detection_output", f_name.strip())
+        f_path_out = os.path.join("/world/data-c27/face_landmarks_hourglass/detection-output", f_name.strip())
         benchmark(net, ctx, f_path_out)
-    '''
-    benchmark(net, ctx, "/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/light-head-rcnn-vgg16-9anchors/light-head-rcnn-vgg16-9anchors-80000.benchmark")
+
+    # benchmark(net, ctx, "/world/data-gpu-112/zhanglinghan/face-detect-faster-rcnn-mx/faster-rcnn-mobilenetv2_0.25-9anchors/faster-rcnn-mobilenetv2_0.25-9anchors-60000.benchmark")

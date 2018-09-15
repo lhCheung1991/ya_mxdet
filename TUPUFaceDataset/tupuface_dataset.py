@@ -93,8 +93,8 @@ class TUPUFaceDataset(mx.gluon.data.Dataset):
 
         # resize
         if self.resize_func is not None:
-            # img, scale = self.resize_func(img)
-            img, scale = self.resize_func(img, target_h=600, target_w=1066)
+            img, scale = self.resize_func(img)
+            # img, scale = self.resize_func(img, target_h=600, target_w=1066)
         else:
             scale = 1
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

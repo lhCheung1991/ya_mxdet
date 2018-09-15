@@ -3,7 +3,7 @@
 
 from faster_rcnn.config import cfg
 # from VOCDataset import VOCDataset
-from TUPUFaceDataset import TUPUFaceDataset 
+from TUPUFaceDataset import TUPUFaceDataset
 from faster_rcnn.faster_rcnn import FasterRCNN
 import mxnet as mx
 from faster_rcnn.utils import random_flip, imagenetNormalize, img_resize, img_resize_fix, random_square_crop, select_class_generator, bbox_inverse_transform, softmax_celoss_with_ignore
@@ -14,6 +14,12 @@ import argparse
 import logging
 from faster_rcnn_benchmark import *
 from imgaug import augmenters as iaa
+from mxboard import SummaryWriter
+
+import sys;sys.path.append("/home/zhanglinghan/face-detection-benchmark-pytorch")
+from evals import evals
+import numpy as np
+import glob
 
 
 def logging_system():
@@ -91,7 +97,7 @@ def main():
         net.collect_params().load(args.pretrained_model, CTX)
         logger.info("loading {}".format(args.pretrained_model))
 
-    lr_schdl = mx.lr_scheduler.FactorScheduler(step=50000, factor=0.5)
+    lr_schdl = mx.lr_scheduler.FactorScheduler(step=80000, factor=0.5)
     trainer = mx.gluon.trainer.Trainer(net.collect_params(), 'sgd',
                                         optimizer_params={
                                             'learning_rate': args.learning_rate,
@@ -100,6 +106,10 @@ def main():
                                             'momentum': 0.9
                                         })
     anchors_count = len(cfg.anchor_ratios) * len(cfg.anchor_scales)
+
+    files = glob.glob(os.path.join(args.save_path, "logs", "*"))
+    for f in files:
+        os.remove(f)
 
     for epoch in range(0, args.epochs):
 
@@ -169,16 +179,33 @@ def main():
                             trainer.learning_rate
                             )
                         )
+
+                # tensorboard info
+                with SummaryWriter(logdir=os.path.join(args.save_path, "logs")) as sw:
+                    sw.add_scalar(tag='Loss', value=(loss_interval / args.log_train_freq / args.batch_size), global_step=it)
+                    sw.add_scalar(tag='LR', value=trainer.learning_rate, global_step=it)
+
                 loss_interval = 0.0
                 rpn_loss_cls_interval = 0.0
                 rpn_loss_reg_interval = 0.0
                 rcnn_loss_cls_interval = 0.0
                 rcnn_loss_reg_interval = 0.0
 
-            if it % args.save_interval == 0 and it != 0:
+
+            if it % args.save_interval == 0:
                 save_schema = os.path.split(args.save_path)[1] + "-{}"
                 net.collect_params().save(os.path.join(args.save_path, save_schema.format(it) + ".gluonmodel"))
                 benchmark(net, CTX[0], os.path.join(args.save_path, save_schema.format(it) + ".benchmark"))
+                pr_curve = evals(
+                    cfg.test_dataset_json_lst[0],  
+                    os.path.join(args.save_path, save_schema.format(it) + ".benchmark"),
+                    topk=1000,
+                    reset=True)
+                ap = np.trapz(pr_curve[:, 0], pr_curve[:, 1])
+
+                # tensorboard info
+                with SummaryWriter(logdir=os.path.join(args.save_path, "logs")) as sw:
+                    sw.add_scalar(tag='AP', value=ap, global_step=it)
 
 
 if __name__ == "__main__":

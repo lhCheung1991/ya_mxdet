@@ -63,10 +63,10 @@ class FasterRCNN(mx.gluon.HybridBlock):
                 ctx=ctx)
 
         # standard Faster R-CNN
-        # self.rcnn = RCNNBlock(num_classes)
+        self.rcnn = RCNNBlock(num_classes)
 
         # Light Head R-CNN
-        self.rcnn = LightHeadRCNNBlock(num_classes)
+        # self.rcnn = LightHeadRCNNBlock(num_classes)
         
     def hybrid_forward(self, F, x, **kwargs):
         raise NotImplementedError
